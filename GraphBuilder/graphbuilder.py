@@ -2,11 +2,10 @@ import imp
 import torch
 from itertools import product
 from abc import ABC, abstractmethod
-from cProfile import label
 from torch_geometric.data import Data
-from node_extractors import RawExtractor
-from edge_extractors import PearsonExtractor
-from constants import NUM_CHANNELS
+from .node_extractors import RawExtractor
+from .edge_extractors import PearsonExtractor
+from .constants import NUM_CHANNELS
 
 
 class BaseGraphBuilder(ABC):
@@ -21,7 +20,7 @@ class BaseGraphBuilder(ABC):
     def build(self, data, label):
         node_features = self.node_feature_extractor.extract_features(data)
         edge_features = self.edge_feature_extractor.extract_features(data)
-        format_label = self.format_label()
+        format_label = self._format_label(label)
         edge_index = torch.tensor(
             [[a, b] for a, b in product(range(NUM_CHANNELS), range(NUM_CHANNELS))]
         ).t().contiguous()
@@ -35,8 +34,14 @@ class BaseGraphBuilder(ABC):
         
         return graph
         
-    def format_label(self) -> torch.Tensor:
-        return torch.tensor([0, 1, 0], dtype=torch.float64)
+    def _format_label(self, label) -> torch.Tensor:
+        if label == "AD":
+            return torch.tensor([[1, 0, 0]], dtype=torch.float64)
+        if label == "HC":
+            return torch.tensor([[0, 1, 0]], dtype=torch.float64)
+        if label == "MCI":
+            return torch.tensor([[0, 0, 1]], dtype=torch.float64)
+        
         
             
 class RawAndPearson(BaseGraphBuilder):
